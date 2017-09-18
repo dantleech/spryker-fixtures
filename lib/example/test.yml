@@ -1,0 +1,21 @@
+Orm\Zed\User\Persistence\SpyUser:
+    one:
+        firstName: foo
+        lastName: bar
+        username: dantleech
+        password: helloworld
+    three:
+        firstName: foo
+        lastName: bar
+        username: barfoo
+        password: helloworld
+    two:
+        firstName: foo
+        lastName: bar
+        username: donkey
+        password: helloworld
+
+Orm\Zed\Auth\Persistence\SpyResetPassword:
+    one:
+        user: @one
+
