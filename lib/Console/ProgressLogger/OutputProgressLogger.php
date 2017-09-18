@@ -25,6 +25,11 @@ class OutputProgressLogger implements PurgerProgressLogger, LoaderProgressLogger
         $this->output->write('<info>Loading: </>' . $classFqn);
     }
 
+    public function loadedClassFqn(string $classFqn)
+    {
+        $this->output->write(PHP_EOL);
+    }
+
     public function loadingFixture(string $name)
     {
         $this->output->write('.');

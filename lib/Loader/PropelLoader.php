@@ -7,6 +7,7 @@ use Symfony\Component\PropertyAccess\PropertyAccessor;
 use DTL\Spryker\Fixtures\ClassUtils;
 use DTL\Spryker\Fixtures\Loader\EntityRegistry;
 use Propel\Runtime\Map\TableMap;
+use Propel\Runtime\Propel;
 
 class PropelLoader
 {
@@ -27,6 +28,7 @@ class PropelLoader
             $classFqn = ClassUtils::normalize($classFqn);
             $logger->loadingClassFqn($classFqn);
             $this->loadFixtures($idRegistry, $logger, $classFqn, $fixtures);
+            $logger->loadedClassFqn($classFqn);
         }
     }
 
@@ -42,9 +44,7 @@ class PropelLoader
             /** @var $entity ActiveRecordInterface */
             $entity = new $classFqn();
 
-            $tableMapFqn = constant(get_class($entity) . '::TABLE_MAP');
-            /** @var $tableMap \Propel\Runtime\Map\TableMap */
-            $tableMap = new $tableMapFqn;
+            $tableMap = Propel::getDatabaseMap()->getTableByPhpName(get_class($entity));
 
             $this->loadProperties($tableMap, $idRegistry, $entity, $fixture);
 
@@ -53,10 +53,10 @@ class PropelLoader
             $primaryKeys = $tableMap->getPrimaryKeys();
 
             if (count($primaryKeys) != 1) {
-                throw new \RuntimeException(sprintf(
-                    'Class with multiple or zero primary keys "%s" not supported (has "%s")',
-                    $classFqn, implode('", "', array_keys($primaryKeys))
-                ));
+            //    throw new \RuntimeException(sprintf(
+            //        'Class with multiple or zero primary keys "%s" not supported (has "%s")',
+            //        $classFqn, implode('", "', array_keys($primaryKeys))
+            //    ));
             }
 
             $primaryKey = reset($primaryKeys);
@@ -70,9 +70,28 @@ class PropelLoader
     private function loadProperties(TableMap $tableMap, EntityRegistry $idRegistry, ActiveRecordInterface $entity, array $fixture)
     {
         foreach ($fixture as $propertyPath => $value) {
-            $column = $tableMap->hasRelation($propertyPath);
+            if ($tableMap->hasRelation(ucfirst($propertyPath))) {
+                $fixtureName = $this->fixtureNameFromValue($value);
+                $relation = $tableMap->getRelation(ucfirst($propertyPath));
+                $value = $idRegistry->entity(
+                    $relation->getForeignTable()->getClassName(),
+                    $fixtureName
+                );
+            }
             $this->propertyAccessor->setValue($entity, $propertyPath, $value);
         }
+    }
+
+    private function fixtureNameFromValue(string $value)
+    {
+        if (substr($value, 0, 1) !== '@') {
+            throw new \RuntimeException(sprintf(
+                'Fixture reference must be prefixed with "@" got "%s"', $value
+
+            ));
+        }
+
+        return substr($value, 1);
     }
 }
 

@@ -3,6 +3,7 @@
 namespace DTL\Spryker\Fixtures\Loader;
 
 use Propel\Runtime\ActiveRecord\ActiveRecordInterface;
+use DTL\Spryker\Fixtures\ClassUtils;
 
 class EntityRegistry
 {
@@ -11,6 +12,7 @@ class EntityRegistry
     public function register($name, ActiveRecordInterface $entity)
     {
         $classFqn = get_class($entity);
+        $classFqn = ClassUtils::normalize($classFqn);
 
         if (!isset($this->entityMap[$classFqn])) {
             $this->entityMap[$classFqn] = [];
@@ -19,8 +21,9 @@ class EntityRegistry
         $this->entityMap[$classFqn][$name] = $entity;
     }
 
-    public function id(string $classFqn, string $name)
+    public function entity(string $classFqn, string $name)
     {
+        $classFqn = ClassUtils::normalize($classFqn);
         if (false === isset($this->entityMap[$classFqn])) {
             throw new \RuntimeException(sprintf(
                 'No fixtures for class "%s" have been persisted (while trying to get "%s"), yet. Registered classes "%s"',

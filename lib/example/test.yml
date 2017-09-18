@@ -18,4 +18,5 @@ Orm\Zed\User\Persistence\SpyUser:
 Orm\Zed\Auth\Persistence\SpyResetPassword:
     one:
         user: @one
-
+        code: 1234
+        status: active
