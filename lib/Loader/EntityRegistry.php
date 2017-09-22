@@ -14,30 +14,25 @@ class EntityRegistry
         $classFqn = get_class($entity);
         $classFqn = ClassUtils::normalize($classFqn);
 
-        if (!isset($this->entityMap[$classFqn])) {
-            $this->entityMap[$classFqn] = [];
+        if (isset($this->entityMap[$name])) {
+            throw new \RuntimeException(sprintf(
+                'An entity has already been registered with name "%s"',
+                $name
+            ));
         }
 
-        $this->entityMap[$classFqn][$name] = $entity;
+        $this->entityMap[$name] = $entity;
     }
 
-    public function entity(string $classFqn, string $name)
+    public function entity(string $name)
     {
-        $classFqn = ClassUtils::normalize($classFqn);
-        if (false === isset($this->entityMap[$classFqn])) {
+        if (false === isset($this->entityMap[$name])) {
             throw new \RuntimeException(sprintf(
-                'No fixtures for class "%s" have been persisted (while trying to get "%s"), yet. Registered classes "%s"',
-                $classFqn, $name, implode('", "', array_keys($this->entityMap))
+                'No fixture "%s" has been persisted yet, persisted fixtures "%s"',
+                $name, implode('", "', array_keys($this->entityMap))
             ));
         }
 
-        if (false === isset($this->entityMap[$classFqn][$name])) {
-            throw new \RuntimeException(sprintf(
-                'No fixture "%s" has been persisted yet, persisted fixtures for "%s": "%s"',
-                $name, $classFqn, implode('", "', array_keys($this->entityMap[$classFqn]))
-            ));
-        }
-
-        return $this->entityMap[$classFqn][$name];
+        return $this->entityMap[$name];
     }
 }

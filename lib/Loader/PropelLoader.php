@@ -70,14 +70,26 @@ class PropelLoader
     private function loadProperties(TableMap $tableMap, EntityRegistry $idRegistry, ActiveRecordInterface $entity, array $fixture)
     {
         foreach ($fixture as $propertyPath => $value) {
-            if ($tableMap->hasRelation(ucfirst($propertyPath))) {
+            $accessor = null;
+            if (0 === strpos($value, '@') && false !== strpos($value, ':')) {
+                $accessor = substr($value, strpos($value, ':') + 1);
+                $value = substr($value, 0, strpos($value, ':'));
+            }
+
+            $column = $tableMap->getColumnByPhpName(ucfirst($propertyPath));
+
+            if ($column->isForeignKey()) {
                 $fixtureName = $this->fixtureNameFromValue($value);
-                $relation = $tableMap->getRelation(ucfirst($propertyPath));
+                $relation = $column->getRelation();
                 $value = $idRegistry->entity(
-                    $relation->getForeignTable()->getClassName(),
                     $fixtureName
                 );
+
+                if ($accessor) {
+                    $value = $this->propertyAccessor->getValue($value, $accessor);
+                }
             }
+
             $this->propertyAccessor->setValue($entity, $propertyPath, $value);
         }
     }
