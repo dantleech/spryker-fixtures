@@ -19,6 +19,8 @@ use Propel\Runtime\ActiveRecord\ActiveRecordInterface;
 use DTL\Spryker\Fixtures\Purger\PropelPurger;
 use DTL\Spryker\Fixtures\Console\ProgressLogger\OutputProgressLogger;
 use DTL\Spryker\Fixtures\Loader\PropelLoader;
+use Symfony\Component\Console\Input\InputOption;
+use DTL\Spryker\Fixtures\Console\ProgressLogger\NullLogger;
 
 class FixtureConsole extends Console
 {
@@ -49,6 +51,7 @@ class FixtureConsole extends Console
     {
         parent::configure();
         $this->setName(static::COMMAND_NAME);
+        $this->addOption('no-progress', 'np', InputOption::VALUE_NONE, 'Supress progress');
         $this->setDescription(static::COMMAND_DESCRIPTION);
         $this->addArgument('path', InputArgument::REQUIRED, 'Path to fixture YAML');
     }
@@ -56,6 +59,8 @@ class FixtureConsole extends Console
     /**
      * @param \Symfony\Component\Console\Input\InputInterface $input
      * @param \Symfony\Component\Console\Output\OutputInterface $output
+     *
+     * @throws \InvalidArgumentException
      *
      * @return int
      */
@@ -73,12 +78,16 @@ class FixtureConsole extends Console
         $contents = file_get_contents($path);
         $fixtures = Yaml::parse($contents);
 
-        $progressLogger = new OutputProgressLogger($output);
+        if ($input->getOption('no-progress')) {
+            $progressLogger = new NullLogger();
+        } else {
+            $progressLogger = new OutputProgressLogger($output);
+        }
 
         $this->purger->purge($progressLogger, array_keys($fixtures));
-        $this->loader->load($progressLogger, $fixtures);
+        $registry = $this->loader->load($progressLogger, $fixtures);
 
-        $output->write(PHP_EOL);
+        $output->writeln(json_encode($registry->idMap()));
     }
 }
 

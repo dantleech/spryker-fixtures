@@ -8,8 +8,9 @@ use DTL\Spryker\Fixtures\ClassUtils;
 class EntityRegistry
 {
     private $entityMap = [];
+    private $entityIds = [];
 
-    public function register($name, ActiveRecordInterface $entity)
+    public function register($name, ActiveRecordInterface $entity, int $primaryKey)
     {
         $classFqn = get_class($entity);
         $classFqn = ClassUtils::normalize($classFqn);
@@ -22,6 +23,7 @@ class EntityRegistry
         }
 
         $this->entityMap[$name] = $entity;
+        $this->entityIds[$name] = $primaryKey;
     }
 
     public function entity(string $name)
@@ -34,5 +36,10 @@ class EntityRegistry
         }
 
         return $this->entityMap[$name];
+    }
+
+    public function idMap(): array
+    {
+        return $this->entityIds;
     }
 }

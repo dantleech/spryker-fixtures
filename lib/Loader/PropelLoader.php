@@ -21,7 +21,7 @@ class PropelLoader
         $this->propertyAccessor = new PropertyAccessor();
     }
 
-    public function load(ProgressLogger $logger, array $fixtureSet)
+    public function load(ProgressLogger $logger, array $fixtureSet): EntityRegistry
     {
         $idRegistry = new EntityRegistry();
         foreach ($fixtureSet as $classFqn => $fixtures) {
@@ -30,6 +30,8 @@ class PropelLoader
             $this->loadFixtures($idRegistry, $logger, $classFqn, $fixtures);
             $logger->loadedClassFqn($classFqn);
         }
+
+        return $idRegistry;
     }
 
     private function loadFixtures(EntityRegistry $idRegistry, ProgressLogger $logger, string $classFqn, array $fixtures)
@@ -62,7 +64,7 @@ class PropelLoader
             $primaryKey = reset($primaryKeys);
             $getter = 'get' . $primaryKey->getPhpName();
 
-            $idRegistry->register($name, $entity);
+            $idRegistry->register($name, $entity, $entity->$getter());
             $logger->loadingFixture($name);
         }
     }
