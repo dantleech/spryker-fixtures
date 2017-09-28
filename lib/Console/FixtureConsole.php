@@ -21,6 +21,7 @@ use DTL\Spryker\Fixtures\Console\ProgressLogger\OutputProgressLogger;
 use DTL\Spryker\Fixtures\Loader\PropelLoader;
 use Symfony\Component\Console\Input\InputOption;
 use DTL\Spryker\Fixtures\Console\ProgressLogger\NullLogger;
+use DTL\Spryker\Fixtures\FixtureLoader\YamlFixtureLoader;
 
 class FixtureConsole extends Console
 {
@@ -34,6 +35,11 @@ class FixtureConsole extends Console
      */
     private $loader;
 
+    /**
+     * @var YamlFixtureLoader
+     */
+    private $fixtureLoader;
+
     const COMMAND_NAME = 'inviqa:fixture:load';
     const COMMAND_DESCRIPTION = 'Load fixtures';
 
@@ -42,6 +48,7 @@ class FixtureConsole extends Console
         parent::__construct();
         $this->purger = $purger ?: new PropelPurger();
         $this->loader = $loader ?: new PropelLoader();
+        $this->fixtureLoader = new YamlFixtureLoader();
     }
 
     /**
@@ -75,8 +82,7 @@ class FixtureConsole extends Console
             ));
         }
 
-        $contents = file_get_contents($path);
-        $fixtures = Yaml::parse($contents);
+        $fixtures = $this->fixtureLoader->load($path);
 
         if ($input->getOption('no-progress')) {
             $progressLogger = new NullLogger();

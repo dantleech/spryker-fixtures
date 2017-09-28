@@ -1,3 +1,6 @@
+_include:
+    - "test_include.yml"
+
 Orm\Zed\User\Persistence\SpyUser:
     one:
         firstName: foo
@@ -14,9 +17,3 @@ Orm\Zed\User\Persistence\SpyUser:
         lastName: bar
         username: donkey
         password: helloworld
-
-Orm\Zed\Auth\Persistence\SpyResetPassword:
-    one:
-        user: @one
-        code: 1234
-        status: active

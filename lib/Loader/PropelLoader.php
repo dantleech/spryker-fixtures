@@ -80,7 +80,7 @@ class PropelLoader
 
             $column = $tableMap->getColumnByPhpName(ucfirst($propertyPath));
 
-            if ($column->isForeignKey()) {
+            if (substr($value, 0, 1) == '@') {
                 $fixtureName = $this->fixtureNameFromValue($value);
                 $relation = $column->getRelation();
                 $value = $idRegistry->entity(

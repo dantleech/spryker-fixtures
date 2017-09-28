@@ -1,0 +1,11 @@
+Orm\Zed\User\Persistence\SpyUser:
+    thirtythree:
+        firstName: foo
+        lastName: bar
+        username: yves
+        password: sevy
+
+Orm\Zed\Customer\Persistence\SpyCustomer:
+    customer_1:
+        email: customer_1@example.com
+        customerReference: "customer_1"
