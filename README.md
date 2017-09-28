@@ -40,6 +40,19 @@ Acme\Person:
         address_id: @address_1:idAddress
 ```
 
+Fixtures can be included relative to the current fixture file:
+
+```
+_include:
+    - "common/lookuptables.yml"
+
+FixtureOne:
+    fixture_one:
+        # ...
+```
+
+Included fixtures will be included before loading the rest of the file.
+
 ### Installation
 
 ```diff
