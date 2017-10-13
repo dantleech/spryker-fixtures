@@ -3,6 +3,7 @@
 namespace DTL\Spryker\Fixtures\FixtureLoader;
 
 use Symfony\Component\Yaml\Yaml;
+use InvalidArgumentException;
 
 class YamlFixtureLoader
 {
@@ -19,7 +20,7 @@ class YamlFixtureLoader
         }
 
         if (false === file_exists($filePath)) {
-            throw new \InvalidArgumentException(sprintf(
+            throw new InvalidArgumentException(sprintf(
                 'File "%s" does not exist', $filePath
             ));
         }

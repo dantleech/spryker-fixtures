@@ -2,12 +2,16 @@
 
 namespace DTL\Spryker\Fixtures\Loader;
 
-use Propel\Runtime\ActiveRecord\ActiveRecordInterface;
-use Symfony\Component\PropertyAccess\PropertyAccessor;
 use DTL\Spryker\Fixtures\ClassUtils;
 use DTL\Spryker\Fixtures\Loader\EntityRegistry;
+use DTL\Spryker\Fixtures\ValueResolver\ConstantResolver;
+use Propel\Runtime\ActiveRecord\ActiveRecordInterface;
 use Propel\Runtime\Map\TableMap;
 use Propel\Runtime\Propel;
+use RuntimeException;
+use Symfony\Component\PropertyAccess\PropertyAccessor;
+use DTL\Spryker\Fixtures\ValueResolver\ValueResolver;
+use DTL\Spryker\Fixtures\ValueResolver\DelegatingResolver;
 
 class PropelLoader
 {
@@ -16,25 +20,33 @@ class PropelLoader
      */
     private $propertyAccessor;
 
+    /**
+     * @var ValueResolver
+     */
+    private $valueResolver;
+
     public function __construct()
     {
         $this->propertyAccessor = new PropertyAccessor();
+        $this->valueResolver = new DelegatingResolver([
+            'constant' => new ConstantResolver(),
+        ]);
     }
 
     public function load(ProgressLogger $logger, array $fixtureSet): EntityRegistry
     {
-        $idRegistry = new EntityRegistry();
+        $entityRegistry = new EntityRegistry();
         foreach ($fixtureSet as $classFqn => $fixtures) {
             $classFqn = ClassUtils::normalize($classFqn);
             $logger->loadingClassFqn($classFqn);
-            $this->loadFixtures($idRegistry, $logger, $classFqn, $fixtures);
+            $this->loadFixtures($entityRegistry, $logger, $classFqn, $fixtures);
             $logger->loadedClassFqn($classFqn);
         }
 
-        return $idRegistry;
+        return $entityRegistry;
     }
 
-    private function loadFixtures(EntityRegistry $idRegistry, ProgressLogger $logger, string $classFqn, array $fixtures)
+    private function loadFixtures(EntityRegistry $entityRegistry, ProgressLogger $logger, string $classFqn, array $fixtures)
     {
         foreach ($fixtures as $name => $fixture) {
             if (!class_exists($classFqn)) {
@@ -43,63 +55,36 @@ class PropelLoader
                 ));
             }
 
-            /** @var $entity ActiveRecordInterface */
+            /** @var ActiveRecordInterface $entity */
             $entity = new $classFqn();
 
             $tableMap = Propel::getDatabaseMap()->getTableByPhpName(get_class($entity));
 
-            $this->loadProperties($tableMap, $idRegistry, $entity, $fixture);
+            $this->loadProperties($tableMap, $entityRegistry, $entity, $fixture);
 
             $entity->save();
 
             $primaryKeys = $tableMap->getPrimaryKeys();
 
-            if (count($primaryKeys) != 1) {
-            //    throw new \RuntimeException(sprintf(
-            //        'Class with multiple or zero primary keys "%s" not supported (has "%s")',
-            //        $classFqn, implode('", "', array_keys($primaryKeys))
-            //    ));
-            }
-
             $primaryKey = reset($primaryKeys);
             $getter = 'get' . $primaryKey->getPhpName();
 
-            $idRegistry->register($name, $entity, $entity->$getter());
+            $entityRegistry->register($name, $entity, $entity->$getter());
             $logger->loadingFixture($name);
         }
     }
 
-    private function loadProperties(TableMap $tableMap, EntityRegistry $idRegistry, ActiveRecordInterface $entity, array $fixture)
+    private function loadProperties(TableMap $tableMap, EntityRegistry $entityRegistry, ActiveRecordInterface $entity, array $fixture)
     {
         foreach ($fixture as $propertyPath => $value) {
-            $accessor = null;
-            if (0 === strpos($value, '@') && false !== strpos($value, ':')) {
-                $accessor = substr($value, strpos($value, ':') + 1);
-                $value = substr($value, 0, strpos($value, ':'));
-            }
-
-            $column = $tableMap->getColumnByPhpName(ucfirst($propertyPath));
-
-            if (substr($value, 0, 1) == '@') {
-                $fixtureName = $this->fixtureNameFromValue($value);
-                $relation = $column->getRelation();
-                $value = $idRegistry->entity(
-                    $fixtureName
-                );
-
-                if ($accessor) {
-                    $value = $this->propertyAccessor->getValue($value, $accessor);
-                }
-            }
-
-            $this->propertyAccessor->setValue($entity, $propertyPath, $value);
+            $this->propertyAccessor->setValue($entity, $propertyPath, $this->resolveValue($tableMap, $entityRegistry, $propertyPath, $value));
         }
     }
 
     private function fixtureNameFromValue(string $value)
     {
         if (substr($value, 0, 1) !== '@') {
-            throw new \RuntimeException(sprintf(
+            throw new RuntimeException(sprintf(
                 'Fixture reference must be prefixed with "@" got "%s"', $value
 
             ));
@@ -107,5 +92,34 @@ class PropelLoader
 
         return substr($value, 1);
     }
-}
 
+    private function resolveValue(TableMap $tableMap, EntityRegistry $entityRegistry, string $propertyPath, $value)
+    {
+        if (is_array($value)) {
+            return $this->valueResolver->resolveValue($value);
+        }
+
+        $accessor = null;
+        if (0 === strpos($value, '@') && false !== strpos($value, ':')) {
+            $accessor = substr($value, strpos($value, ':') + 1);
+            $value = substr($value, 0, strpos($value, ':'));
+        }
+
+        $column = $tableMap->getColumnByPhpName(ucfirst($propertyPath));
+
+        if (substr($value, 0, 1) == '@') {
+            $fixtureName = $this->fixtureNameFromValue($value);
+            $relation = $column->getRelation();
+            $value = $entityRegistry->entity(
+                $fixtureName
+            );
+
+            if ($accessor) {
+                $value = $this->propertyAccessor->getValue($value, $accessor);
+            }
+        }
+
+        return $value;
+    }
+
+}
