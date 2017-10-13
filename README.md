@@ -53,6 +53,22 @@ FixtureOne:
 
 Included fixtures will be included before loading the rest of the file.
 
+### Special Types
+
+Special cases can be handled by using an array synxtax, currently only
+constants are supported:
+
+```
+_include:
+    - "common/lookuptables.yml"
+
+FixtureOne:
+    fixture_one:
+        state_machine_name:
+            type: constant
+            constant: "Acme\\StateMachine::NAME"
+```
+
 ### Installation
 
 ```diff

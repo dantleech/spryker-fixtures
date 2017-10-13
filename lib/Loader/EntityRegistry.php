@@ -7,7 +7,14 @@ use DTL\Spryker\Fixtures\ClassUtils;
 
 class EntityRegistry
 {
+    /**
+     * @var array
+     */
     private $entityMap = [];
+
+    /**
+     * @var array
+     */
     private $entityIds = [];
 
     public function register($name, ActiveRecordInterface $entity, int $primaryKey)

@@ -5,14 +5,17 @@ namespace DTL\Spryker\Fixtures\Loader;
 use DTL\Spryker\Fixtures\ClassUtils;
 use DTL\Spryker\Fixtures\Loader\EntityRegistry;
 use DTL\Spryker\Fixtures\ValueResolver\ConstantResolver;
+use DTL\Spryker\Fixtures\ValueResolver\DelegatingResolver;
+use DTL\Spryker\Fixtures\ValueResolver\ValueResolver;
 use Propel\Runtime\ActiveRecord\ActiveRecordInterface;
 use Propel\Runtime\Map\TableMap;
 use Propel\Runtime\Propel;
 use RuntimeException;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
-use DTL\Spryker\Fixtures\ValueResolver\ValueResolver;
-use DTL\Spryker\Fixtures\ValueResolver\DelegatingResolver;
 
+/**
+ * TODO: Reference resolution can be refactored into a value resolver.
+ */
 class PropelLoader
 {
     /**

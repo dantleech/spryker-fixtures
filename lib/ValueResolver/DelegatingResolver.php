@@ -2,6 +2,8 @@
 
 namespace DTL\Spryker\Fixtures\ValueResolver;
 
+use InvalidArgumentException;
+
 class DelegatingResolver implements ValueResolver
 {
     /**
