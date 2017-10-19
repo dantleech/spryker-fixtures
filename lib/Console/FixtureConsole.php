@@ -42,12 +42,15 @@ class FixtureConsole extends Console
 
     const COMMAND_NAME = 'inviqa:fixture:load';
     const COMMAND_DESCRIPTION = 'Load fixtures';
+    const ARGUMENT_PATH = 'path';
+    const OPTION_PARAMETERS = 'parameters';
 
-    public function __construct(PropelPurger $purger = null, PropelLoader $loader = null)
+
+
+    public function __construct(PropelPurger $purger = null)
     {
         parent::__construct();
         $this->purger = $purger ?: new PropelPurger();
-        $this->loader = $loader ?: new PropelLoader();
         $this->fixtureLoader = new YamlFixtureLoader();
     }
 
@@ -60,7 +63,8 @@ class FixtureConsole extends Console
         $this->setName(static::COMMAND_NAME);
         $this->addOption('no-progress', 'np', InputOption::VALUE_NONE, 'Supress progress');
         $this->setDescription(static::COMMAND_DESCRIPTION);
-        $this->addArgument('path', InputArgument::REQUIRED, 'Path to fixture YAML');
+        $this->addArgument(self::ARGUMENT_PATH, InputArgument::REQUIRED, 'Path to fixture YAML');
+        $this->addOption(self::OPTION_PARAMETERS, null, InputOption::VALUE_REQUIRED, 'JSON encoded parameters for fixture file');
     }
 
     /**
@@ -73,7 +77,8 @@ class FixtureConsole extends Console
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        $path = $input->getArgument('path');
+        $path = $input->getArgument(self::ARGUMENT_PATH);
+        $parameters = $this->resolveParameters($input->getOption(self::OPTION_PARAMETERS));
 
         if (false === file_exists($path)) {
             throw new \InvalidArgumentException(sprintf(
@@ -91,9 +96,31 @@ class FixtureConsole extends Console
         }
 
         $this->purger->purge($progressLogger, array_keys($fixtures));
-        $registry = $this->loader->load($progressLogger, $fixtures);
+        $registry = $this->createLoader($parameters)->load($progressLogger, $fixtures);
 
         $output->writeln(json_encode($registry->idMap()));
     }
-}
 
+    private function createLoader(array $parameters)
+    {
+        return new PropelLoader($parameters);
+    }
+
+    private function resolveParameters(string $parameters = null)
+    {
+        if (null === $parameters) {
+            return [];
+        }
+
+        $parameters = json_decode($parameters, true);
+
+        if (false === $parameters) {
+            throw new \RuntimeException(sprintf(
+                'Could not decode JSON parameters: %s',
+                json_last_error()
+            ));
+        }
+
+        return $parameters;
+    }
+}
