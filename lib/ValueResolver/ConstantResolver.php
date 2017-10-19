@@ -11,7 +11,7 @@ class ConstantResolver implements ValueResolver
         if (!isset($valueConfig['constant'])) {
             throw new InvalidArgumentException(sprintf(
                 'Expected `constant` key in value configuration for "%s"'
-            ), 'constant');
+            , 'constant'));
         }
 
         return constant($valueConfig['constant']);

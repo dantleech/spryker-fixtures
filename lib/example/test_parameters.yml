@@ -1,0 +1,8 @@
+Orm\Zed\User\Persistence\SpyUser:
+    thirtythree:
+        firstName:
+            type: parameter
+            name: firstName
+        lastName: bar
+        username: yves
+        password: sevy

@@ -12,6 +12,7 @@ use Propel\Runtime\Map\TableMap;
 use Propel\Runtime\Propel;
 use RuntimeException;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
+use DTL\Spryker\Fixtures\ValueResolver\ParameterResolver;
 
 /**
  * TODO: Reference resolution can be refactored into a value resolver.
@@ -28,11 +29,12 @@ class PropelLoader
      */
     private $valueResolver;
 
-    public function __construct()
+    public function __construct(array $parameters)
     {
         $this->propertyAccessor = new PropertyAccessor();
         $this->valueResolver = new DelegatingResolver([
             'constant' => new ConstantResolver(),
+            'parameter' => new ParameterResolver($parameters),
         ]);
     }
 
