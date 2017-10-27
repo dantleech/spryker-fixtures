@@ -25,36 +25,22 @@ use Symfony\Component\PropertyAccess\PropertyAccessor;
 use Symfony\Component\PropertyAccess\PropertyAccessorBuilder;
 use Symfony\Component\Yaml\Yaml;
 
-class FixtureConsole extends Console
+class FixturePurgeConsole extends Console
 {
     /**
      * @var PropelPurger
      */
     private $purger;
 
-    /**
-     * @var PropelLoader
-     */
-    private $loader;
-
-    /**
-     * @var YamlFixtureLoader
-     */
-    private $fixtureLoader;
-
-    const COMMAND_NAME = 'inviqa:fixture:load';
-    const COMMAND_DESCRIPTION = 'Load fixtures';
-    const ARGUMENT_PATH = 'path';
-    const OPTION_PARAMETERS = 'parameters';
+    const COMMAND_NAME = 'inviqa:fixture:purge';
+    const COMMAND_DESCRIPTION = 'Recursively purge by class name';
     const OPTION_PURGE = 'purge';
     const OPTION_NO_PROGRESS = 'no-progress';
-
 
     public function __construct(PropelPurger $purger = null)
     {
         parent::__construct();
         $this->purger = $purger ?: new PropelPurger();
-        $this->fixtureLoader = new YamlFixtureLoader();
     }
 
     /**
@@ -66,24 +52,13 @@ class FixtureConsole extends Console
         $this->setName(static::COMMAND_NAME);
         $this->setDescription(static::COMMAND_DESCRIPTION);
 
-        $this->addArgument(
-            self::ARGUMENT_PATH,
-            InputArgument::REQUIRED,
-            'Path to fixture YAML'
-        );
-
-        $this->addOption(
-            self::OPTION_PARAMETERS,
-            null,
-            InputOption::VALUE_REQUIRED,
-            'JSON encoded parameters for fixture file'
-        );
         $this->addOption(
             self::OPTION_PURGE,
             null,
             InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
             'Purge class (in addition to fixture classes)'
         );
+
         $this->addOption(
             self::OPTION_NO_PROGRESS,
             'np',
@@ -93,51 +68,14 @@ class FixtureConsole extends Console
     }
 
     /**
-     * @param \Symfony\Component\Console\Input\InputInterface $input
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
-     *
-     * @throws \InvalidArgumentException
-     *
-     * @return int
+     * {@inheritdoc}
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        $path = $input->getArgument(self::ARGUMENT_PATH);
-        $parameters = $this->resolveParameters($input->getOption(self::OPTION_PARAMETERS));
-        $additionalClassesToPurge = $input->getOption(self::OPTION_PURGE);
-
-        if (false === file_exists($path)) {
-            throw new InvalidArgumentException(sprintf(
-                'File "%s" does not exist',
-                $path
-            ));
-        }
-
-        $fixtures = $this->fixtureLoader->load($path);
+        $classesToPurge = $input->getOption(self::OPTION_PURGE);
         $progressLogger = $this->progressLogger($input, $output);
 
-        $this->purger->purge($progressLogger, $this->classesToPurge($fixtures, $additionalClassesToPurge));
-        $registry = $this->createLoader($parameters)->load($progressLogger, $fixtures);
-
-        $output->writeln(json_encode($registry->idMap()));
-    }
-
-    private function resolveParameters(string $parameters = null)
-    {
-        if (null === $parameters) {
-            return [];
-        }
-
-        $parameters = json_decode($parameters, true);
-
-        if (false === $parameters) {
-            throw new RuntimeException(sprintf(
-                'Could not decode JSON parameters: %s',
-                json_last_error()
-            ));
-        }
-
-        return $parameters;
+        $this->purger->purge($progressLogger, $classesToPurge);
     }
 
     private function progressLogger(InputInterface $input, OutputInterface $output)
@@ -147,18 +85,5 @@ class FixtureConsole extends Console
         }
 
         return new OutputProgressLogger($output);
-    }
-
-    private function createLoader(array $parameters)
-    {
-        return new PropelLoader($parameters);
-    }
-
-    private function classesToPurge($fixtures, $additionalClassesToPurge): array
-    {
-        return array_merge(
-            array_keys($fixtures),
-            $additionalClassesToPurge
-        );
     }
 }
