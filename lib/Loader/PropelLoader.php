@@ -13,6 +13,7 @@ use Propel\Runtime\Propel;
 use RuntimeException;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
 use DTL\Spryker\Fixtures\ValueResolver\ParameterResolver;
+use DTL\Spryker\Fixtures\ValueResolver\LiteralResolver;
 
 /**
  * TODO: Reference resolution can be refactored into a value resolver.
@@ -35,6 +36,7 @@ class PropelLoader
         $this->valueResolver = new DelegatingResolver([
             'constant' => new ConstantResolver(),
             'parameter' => new ParameterResolver($parameters),
+            'literal' => new LiteralResolver($parameters),
         ]);
     }
 
