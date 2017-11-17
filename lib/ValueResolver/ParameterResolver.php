@@ -18,21 +18,27 @@ class ParameterResolver implements ValueResolver
 
     public function resolveValue(array $valueConfig)
     {
-        if (!isset($valueConfig['name'])) {
+        $valueConfig = array_merge([
+            'name' => null,
+            'default' => null,
+        ], $valueConfig);
+
+        if (null === $valueConfig['name']) {
             throw new InvalidArgumentException(
                 'Expected `name` key in parameter configuration'
             );
         }
 
         $name = $valueConfig['name'];
+        $value = $this->parameters[$name] ?? $valueConfig['default'];
 
-        if (false === isset($this->parameters[$name])) {
+        if (null === $value) {
             throw new InvalidArgumentException(sprintf(
                 'Could not find parameters "%s", known parameters "%s"',
                 $name, implode('", "', array_keys($this->parameters))
             ));
         }
 
-        return $this->parameters[$name];
+        return $value;
     }
 }
