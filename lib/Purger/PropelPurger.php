@@ -6,6 +6,7 @@ use Propel\Runtime\Propel;
 use Propel\Runtime\Map\DatabaseMap;
 use Propel\Runtime\Map\RelationMap;
 use DTL\Spryker\Fixtures\ClassUtils;
+use Propel\Runtime\Exception\RuntimeException;
 
 class PropelPurger
 {
@@ -19,7 +20,12 @@ class PropelPurger
         }
     }
 
-    private function purgeClassFqn(ProgressLogger $logger, string $classFqn, &$purgedClassFqns = [])
+    private function purgeClassFqn(
+        ProgressLogger $logger,
+        string $classFqn,
+        &$purgedClassFqns = [],
+        &$retryClassFqns = []
+    )
     {
         if (isset($purgedClassFqns[$classFqn])) {
             return;
@@ -40,20 +46,30 @@ class PropelPurger
         /** @var $relation RelationMap */
         foreach ($tableMap->getRelations() as $name => $relation) {
             $foreignTable = $relation->getLocalTable();
-            $relatedClassFqn =  $foreignTable->getClassName();
+            $relatedClassFqn = $foreignTable->getClassName();
 
             switch ($relation->getType()) {
                 case RelationMap::ONE_TO_MANY:
-                    $this->purgeClassFqn($logger, $relatedClassFqn, $purgedClassFqns);
-                    continue;
                 case RelationMap::MANY_TO_MANY:
-                    $this->purgeClassFqn($logger, $relatedClassFqn, $purgedClassFqns);
+                    $this->purgeClassFqn($logger, $relatedClassFqn, $purgedClassFqns, $retryClassFqns);
                     continue;
             }
         }
 
         $logger->purgingClassFqn($classFqn);
-        $tableMap->doDeleteAll();
+
+        try {
+            $tableMap->doDeleteAll();
+        } catch (RuntimeException  $e) {
+            if (isset($retryClassFqns[$classFqn])) {
+                throw $e;
+            }
+            $retryClassFqns[$classFqn] = $classFqn;
+        }
+
+        foreach ($retryClassFqns as $retryClassFqn) {
+            $this->purgeClassFqn($logger, $retryClassFqn, $purgedClassFqns);
+        }
 
         return true;
     }
