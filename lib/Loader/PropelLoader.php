@@ -14,6 +14,8 @@ use RuntimeException;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
 use DTL\Spryker\Fixtures\ValueResolver\ParameterResolver;
 use DTL\Spryker\Fixtures\ValueResolver\LiteralResolver;
+use DTL\Spryker\Fixtures\ValueResolver\DeferredReference;
+use DTL\Spryker\Fixtures\ValueResolver\DeferredResolver;
 
 /**
  * TODO: Reference resolution can be refactored into a value resolver.
@@ -30,6 +32,11 @@ class PropelLoader
      */
     private $valueResolver;
 
+    /**
+     * @var array
+     */
+    private $deferredReferences = [];
+
     public function __construct(array $parameters)
     {
         $this->propertyAccessor = new PropertyAccessor();
@@ -37,6 +44,7 @@ class PropelLoader
             'constant' => new ConstantResolver(),
             'parameter' => new ParameterResolver($parameters),
             'literal' => new LiteralResolver($parameters),
+            'deferred_reference' => new DeferredResolver($parameters),
         ]);
     }
 
@@ -48,6 +56,18 @@ class PropelLoader
             $logger->loadingClassFqn($classFqn);
             $this->loadFixtures($entityRegistry, $logger, $classFqn, $fixtures);
             $logger->loadedClassFqn($classFqn);
+        }
+
+        foreach ($this->deferredReferences as $deferredReference) {
+            list($entity, $tableMap, $propertyPath, $reference) = $deferredReference;
+
+            $value = $this->resolveValue($tableMap, $entityRegistry, $propertyPath, $reference);
+            $this->propertyAccessor->setValue(
+                $entity,
+                $propertyPath,
+                $value
+            );
+            $entity->save();
         }
 
         return $entityRegistry;
@@ -84,7 +104,23 @@ class PropelLoader
     private function loadProperties(TableMap $tableMap, EntityRegistry $entityRegistry, ActiveRecordInterface $entity, array $fixture)
     {
         foreach ($fixture as $propertyPath => $value) {
-            $this->propertyAccessor->setValue($entity, $propertyPath, $this->resolveValue($tableMap, $entityRegistry, $propertyPath, $value));
+            $value = $this->resolveValue($tableMap, $entityRegistry, $propertyPath, $value);
+
+            if ($value instanceof DeferredReference) {
+                $this->deferredReferences[] = [
+                    $entity,
+                    $tableMap,
+                    $propertyPath,
+                    $value->getReference(),
+                ];
+                continue;
+            }
+
+            $this->propertyAccessor->setValue(
+                $entity,
+                $propertyPath,
+                $value
+            );
         }
     }
 
